@@ -1,0 +1,5 @@
+requests
+fake-useragent
+termcolor
+beautifulsoup4
+selenium
