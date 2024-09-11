@@ -418,7 +418,7 @@ try_sqli() {
     echo "[*] Running SQLi testing..."
     
     # Run sqli
-    python3 sqli.py -l output/$domain/final_clean.txt --threads 20 --rua
+    python3 sqli.py -l output/$domain/final_clean.txt --payload payloadsql.txt --rua
 }
 
 # Quit function to clear terminal
