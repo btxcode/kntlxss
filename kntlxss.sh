@@ -216,19 +216,31 @@ prompt_domain_and_proceed() {
     read -p "Please enter a domain name (example.com): " domain
     echo "[*] Domain name entered: $domain"
 
+    # Save the current directory (starting point)
+    original_dir=$(pwd)
+
     # Create output directory for the domain if it doesn't exist
     mkdir -p "output/$domain"
 
+    # Change to the domain-specific directory
+    cd "output/$domain"
+
     enumerate_domains_and_proceed
+
+    # After all processes, change back to the original directory
+    cd "$original_dir"
+
+    # Now run the XSS scanners from the original directory
+    run_xss_scanners
 }
 
 # Function to enumerate and filter domains
 enumerate_domains_and_proceed() {
     echo "[*] Enumerating domains using Subdominator..."
-    if [ -f "output/$domain/domains.txt" ]; then
+    if [ -f "domains.txt" ]; then
         echo "[*] domains.txt already exists, skipping Subdominator."
     else
-        subdominator -d $domain -o output/$domain/domains.txt
+        subdominator -d $domain -o domains.txt
         echo "[*] Domain enumeration complete."
     fi
 
@@ -240,62 +252,62 @@ crawl_and_filter_urls() {
     echo "[*] Crawling URLs..."
 
     # Check if waybackurls output exists
-    if [ -f "output/$domain/wayback.txt" ]; then
+    if [ -f "wayback.txt" ]; then
         echo "[*] waybackurls output already exists, skipping."
     else
-        waybackurls http://$domain | tee -a output/$domain/wayback.txt
+        waybackurls http://$domain | tee -a wayback.txt
     fi
 
     # Check if gau output exists
-    if [ -f "output/$domain/gau.txt" ]; then
+    if [ -f "gau.txt" ]; then
         echo "[*] GAU output already exists, skipping."
     else
-        gau http://$domain | tee -a output/$domain/gau.txt
+        gau http://$domain | tee -a gau.txt
     fi
 
     # Check if waymore output exists
-    if [ -f "output/$domain/waymore.txt" ]; then
+    if [ -f "waymore.txt" ]; then
         echo "[*] waymore output already exists, skipping."
     else
-        waymore -i http://$domain -mode U -oU output/$domain/waymore.txt
+        waymore -i http://$domain -mode U -oU waymore.txt
     fi
 
     # Check if katana output exists
-    if [ -f "output/$domain/katana.txt" ]; then
+    if [ -f "katana.txt" ]; then
         echo "[*] katana output already exists, skipping."
     else
-        katana -u http://$domain -kf 3 | tee -a output/$domain/katana.txt
+        katana -u http://$domain -kf 3 | tee -a katana.txt
     fi
 
     # Merging all results into one file in the domain-specific folder
-    if [ -f "output/$domain/combined_urls.txt" ]; then
+    if [ -f "combined_urls.txt" ]; then
         echo "[*] combined_urls.txt already exists, skipping."
     else
-        cat "output/$domain/wayback.txt" "output/$domain/gau.txt" "output/$domain/waymore.txt" "output/$domain/katana.txt" > output/$domain/combined_urls.txt
+        cat wayback.txt gau.txt waymore.txt katana.txt > combined_urls.txt
     fi
 
     # Running further filtering and unique check
-    if [ -f "output/$domain/unique_urls.txt" ]; then
+    if [ -f "unique_urls.txt" ]; then
         echo "[*] unique_urls.txt already exists, skipping."
     else
         echo "[*] Merging and filtering URLs..."
-        cat output/$domain/combined_urls.txt | uniq | sort -u > output/$domain/unique_urls.txt
+        cat combined_urls.txt | uniq | sort -u > unique_urls.txt
     fi
 
     # Hakrawler & Subprober filtering
-    if [ -f "output/$domain/links.txt" ] && [ -f "output/$domain/subprober_urls.txt" ]; then
+    if [ -f "links.txt" ] && [ -f "subprober_urls.txt" ]; then
         echo "[*] Hakrawler and Subprober output already exists, skipping."
     else
         echo "[*] Running hakrawler and Subprober for domain filtering..."
-        cat output/$domain/domains.txt | httpx-toolkit | hakrawler | tee -a output/$domain/links.txt
-        subprober -f output/$domain/domains.txt -sc -ar -o output/$domain/subprober_urls.txt -nc -mc 200 -c 30
+        cat domains.txt | httpx-toolkit | hakrawler | tee -a links.txt
+        subprober -f domains.txt -sc -ar -o subprober_urls.txt -nc -mc 200 -c 30
     fi
 
     # Check if all_urls.txt exists
-    if [ -f "output/$domain/all_urls.txt" ]; then
+    if [ -f "all_urls.txt" ]; then
         echo "[*] all_urls.txt already exists, skipping."
     else
-        cat "output/$domain/unique_urls.txt" "output/$domain/links.txt" "output/$domain/subprober_urls.txt" > "output/$domain/all_urls.txt"
+        cat unique_urls.txt links.txt subprober_urls.txt > all_urls.txt
     fi
 
     # Continue with filtering
@@ -307,26 +319,26 @@ initial_filtering() {
     echo "[*] Performing initial filtering on URLs..."
 
     # Perform initial filtering and save results in the domain-specific folder
-    if [ -f "output/$domain/filtered_urls.txt" ]; then
+    if [ -f "filtered_urls.txt" ]; then
         echo "[*] filtered_urls.txt already exists, skipping."
     else
-        cat output/$domain/all_urls.txt | grep -E -v '\.css$|\.js$|\.jpg$|\.JPG$|\.PNG$|\.GIF$|\.avi$|\.dll$|\.pl$|\.webm$|\.c$|\.py$|\.bat$|\.tar$|\.swp$|\.tmp$|\.sh$|\.deb$|\.exe$|\.zip$|\.mpeg$|\.mpg$|\.flv$|\.wmv$|\.wma$|\.aac$|\.m4a$|\.ogg$|\.mp4$|\.mp3$|\.bat$|\.dat$|\.cfg$|\.cfm$|\.bin$|\.jpeg$|\.JPEG$|\.ps.gz$|\.gz$|\.gif$|\.tif$|\.tiff$|\.csv$|\.png$|\.ttf$|\.ppt$|\.pptx$|\.ppsx$|\.doc$|\.woff$|\.xlsx$|\.xls$|\.mpp$|\.mdb$|\.json$|\.woff2$|\.icon$|\.pdf$|\.docx$|\.svg$|\.txt$|\.jar$|\.0$|\.1$|\.2$|\.3$|\.4$|\.m4r$|\.kml$|\.pro$|\.yao$|\.gcn3$|\.PDF$|\.egy$|\.par$|\.lin$|\.yht$' > output/$domain/filtered_urls.txt
-        grep -E '^https?://' output/$domain/filtered_urls.txt | sed 's/\[200\]//g' > output/$domain/filtered_cleaned_urls.txt
+        cat all_urls.txt | grep -E -v '\.css$|\.js$|\.jpg$|\.JPG$|\.PNG$|\.GIF$|\.avi$|\.dll$|\.pl$|\.webm$|\.c$|\.py$|\.bat$|\.tar$|\.swp$|\.tmp$|\.sh$|\.deb$|\.exe$|\.zip$|\.mpeg$|\.mpg$|\.flv$|\.wmv$|\.wma$|\.aac$|\.m4a$|\.ogg$|\.mp4$|\.mp3$|\.bat$|\.dat$|\.cfg$|\.cfm$|\.bin$|\.jpeg$|\.JPEG$|\.ps.gz$|\.gz$|\.gif$|\.tif$|\.tiff$|\.csv$|\.png$|\.ttf$|\.ppt$|\.pptx$|\.ppsx$|\.doc$|\.woff$|\.xlsx$|\.xls$|\.mpp$|\.mdb$|\.json$|\.woff2$|\.icon$|\.pdf$|\.docx$|\.svg$|\.txt$|\.jar$|\.0$|\.1$|\.2$|\.3$|\.4$|\.m4r$|\.kml$|\.pro$|\.yao$|\.gcn3$|\.PDF$|\.egy$|\.par$|\.lin$|\.yht$' > filtered_urls.txt
+        grep -E '^https?://' filtered_urls.txt | sed 's/\[200\]//g' > filtered_cleaned_urls.txt
     fi
 
     # Running uro for further filtering
-    if [ -f "output/$domain/uro_filtered.txt" ]; then
+    if [ -f "uro_filtered.txt" ]; then
         echo "[*] uro_filtered.txt already exists, skipping."
     else
         echo "[*] Running uro for further filtering..."
-        cat output/$domain/filtered_cleaned_urls.txt | uro -b css js jpg JPG PNG GIF avi dll pl webm c py bat tar swp tmp sh deb exe zip mpeg mpg flv wmv wma aac m4a ogg mp4 mp3 bat dat cfg cfm bin jpeg JPEG ps.gz gz gif tif tiff csv png ttf ppt pptx ppsx doc woff xlsx xls mpp mdb json woff2 icon pdf docx svg txt jar 0 1 2 3 4 m4r kml pro yao gcn3 PDF egy par lin yht | tee -a output/$domain/uro_filtered.txt
+        cat filtered_cleaned_urls.txt | uro -b css js jpg JPG PNG GIF avi dll pl webm c py bat tar swp tmp sh deb exe zip mpeg mpg flv wmv wma aac m4a ogg mp4 mp3 bat dat cfg cfm bin jpeg JPEG ps.gz gz gif tif tiff csv png ttf ppt pptx ppsx doc woff xlsx xls mpp mdb json woff2 icon pdf docx svg txt jar 0 1 2 3 4 m4r kml pro yao gcn3 PDF egy par lin yht | tee -a uro_filtered.txt
     fi
 
     # Check if final_filtered_urls.txt exists
-    if [ -f "output/$domain/final_filtered_urls.txt" ]; then
+    if [ -f "final_filtered_urls.txt" ]; then
         echo "[*] final_filtered_urls.txt already exists, skipping."
     else
-        cat output/$domain/uro_filtered.txt | uniq | sort -u > output/$domain/final_filtered_urls.txt
+        cat uro_filtered.txt | uniq | sort -u > final_filtered_urls.txt
     fi
 
     # Continue to final filtering
@@ -337,68 +349,67 @@ initial_filtering() {
 final_filtering() {
     echo "[*] Performing final filtering..."
 
-    # Save final filtered results in the domain-specific folder
-    if [ -f "output/$domain/final_urls.txt" ]; then
+    # Save final filtered results
+    if [ -f "final_urls.txt" ]; then
         echo "[*] final_urls.txt already exists, skipping."
     else
-        grep '=' output/$domain/final_filtered_urls.txt > output/$domain/filtered_urls_with_params.txt   # Query URLs
-        grep -v '=' output/$domain/final_filtered_urls.txt > output/$domain/filtered_urls_without_params.txt  # Path URLs
-        cat output/$domain/final_filtered_urls.txt | grep -E "\.php|\.asp|\.aspx|\.cfm|\.jsp" | sort > output/$domain/output_php_asp.txt
-        grep -v "http[^ ]*\.[^/]*\." output/$domain/final_filtered_urls.txt | grep "http" | sort > output/$domain/clean_urls.txt
+        grep '=' final_filtered_urls.txt > filtered_urls_with_params.txt   # Query URLs
+        grep -v '=' final_filtered_urls.txt > filtered_urls_without_params.txt  # Path URLs
+        cat final_filtered_urls.txt | grep -E "\.php|\.asp|\.aspx|\.cfm|\.jsp" | sort > output_php_asp.txt
+        grep -v "http[^ ]*\.[^/]*\." final_filtered_urls.txt | grep "http" | sort > clean_urls.txt
 
         # Run Arjun in passive mode in the background
-        arjun --passive -i "output/$domain/output_php_asp.txt" -w parameters.txt -oT "output/$domain/arjun_passive.txt" &
+        arjun --passive -i "output_php_asp.txt" -w parameters.txt -oT "arjun_passive.txt" &
 
         # Run Arjun in active mode in the foreground
-        arjun -i "output/$domain/output_php_asp.txt" -w parameters.txt -t 20 -T 5 -oT "output/$domain/arjun_active.txt"
+        arjun -i "output_php_asp.txt" -w parameters.txt -t 20 -T 5 -oT "arjun_active.txt"
 
         # Wait for passive mode to complete (if not already finished)
         wait
 
         # Merge the results from passive and active scanning
-        cat "output/$domain/arjun_passive.txt" "output/$domain/arjun_active.txt" | sort -u > "output/$domain/arjun_params.txt"
+        cat "arjun_passive.txt" "arjun_active.txt" | sort -u > "arjun_params.txt"
 
-        # Merging all results into final_temp.txt in the domain-specific folder
-        cat "output/$domain/filtered_urls_with_params.txt" "output/$domain/filtered_urls_without_params.txt" "output/$domain/output_php_asp.txt" "output/$domain/clean_urls.txt" "output/$domain/arjun_params.txt" > "output/$domain/final_urls.txt"
-        cat "output/$domain/filtered_urls_without_params.txt" "output/$domain/clean_urls.txt" > "output/$domain/potential_pathxss_urls.txt"
+        # Merging all results into final_temp.txt
+        cat "filtered_urls_with_params.txt" "filtered_urls_without_params.txt" "output_php_asp.txt" "clean_urls.txt" "arjun_params.txt" > "final_urls.txt"
+        cat "filtered_urls_without_params.txt" "clean_urls.txt" > "potential_pathxss_urls.txt"
     fi
 
-    # Clean up intermediate files and proceed to the next steps
     cleanup_intermediate_files
 }
 
-# Function to clean up intermediate files
+# Function to clean up intermediate files (continuation)
 cleanup_intermediate_files() {
-    # Further processing and filtering based on gf patterns
-    if [ -f "output/$domain/final_clean.txt" ]; then
+    echo "[*] Cleaning up intermediate files and preparing final results..."
+
+    if [ -f "final_clean.txt" ]; then
         echo "[*] final_clean.txt already exists, skipping."
     else
-        cat output/$domain/final_urls.txt | gf xss | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > output/$domain/xss.txt
-        cat output/$domain/final_urls.txt | gf sqli | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > output/$domain/sqli.txt
-        cat output/$domain/final_urls.txt | gf ssrf | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > output/$domain/ssrf.txt
-        cat output/$domain/final_urls.txt | gf ssti | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > output/$domain/ssti.txt
-        cat output/$domain/final_urls.txt | gf urlparams | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > output/$domain/urlparams.txt
-        cat output/$domain/final_urls.txt | gf redirect | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > output/$domain/redirect.txt
-        cat output/$domain/final_urls.txt | gf idor | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > output/$domain/idor.txt
-        cat output/$domain/final_urls.txt | gf lfi | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > output/$domain/lfi.txt
+        # Apply gf patterns and prepare final files
+        cat final_urls.txt | gf xss | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > xss.txt
+        cat final_urls.txt | gf sqli | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > sqli.txt
+        cat final_urls.txt | gf ssrf | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > ssrf.txt
+        cat final_urls.txt | gf ssti | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > ssti.txt
+        cat final_urls.txt | gf urlparams | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > urlparams.txt
+        cat final_urls.txt | gf redirect | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > redirect.txt
+        cat final_urls.txt | gf idor | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > idor.txt
+        cat final_urls.txt | gf lfi | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > lfi.txt
 
-        # Final merging and cleanup
-        cat "output/$domain/xss.txt" "output/$domain/sqli.txt" "output/$domain/ssrf.txt" "output/$domain/ssti.txt" "output/$domain/urlparams.txt" "output/$domain/redirect.txt" "output/$domain/idor.txt" "output/$domain/lfi.txt" | uniq > "output/$domain/final.txt"
+        # Final merging of the files into one
+        cat xss.txt sqli.txt ssrf.txt ssti.txt urlparams.txt redirect.txt idor.txt lfi.txt | uniq | sort -u > final.txt
 
-        
-        # running second tools
-        subfinder -u $domain -all -silent | httpx-toolkit > output/$domain/hasilsub.txt
-        cat output/$domain/hasilsub.txt | uniq | sort -u > output/$domain/finalsub.txt
-        bash xsscrawler.sh -l output/$domain/finalsub.txt -o output/$domain/secondtool.txt
-        
-        #cat "output/$domain/final.txt" "output/$domain/potential_pathxss_urls.txt" "output/$domain/secondtool.txt" | uniq | sort -u > "output/$domain/final_clean.txt"
-        #cat "output/$domain/final.txt" "output/$domain/potential_pathxss_urls.txt" "output/$domain/secondtool.txt" | uniq | sort -u | sed -e 's/:80//g' -e 's/:443//g' > "output/$domain/final_clean.txt"
-        cat "output/$domain/final.txt" "output/$domain/potential_pathxss_urls.txt" "output/$domain/secondtool.txt" | uniq | sort -u | sed -e 's/:80//g' -e 's/:443//g' | sed 's/^.*://' > "output/$domain/final_clean.txt"
+        # Run the second tools and update final clean
+        subfinder -u $domain -all -silent | httpx-toolkit > hasilsub.txt
+        cat hasilsub.txt | uniq | sort -u > finalsub.txt
+        bash xsscrawler.sh -l finalsub.txt -o secondtool.txt
 
-
+        # Final clean preparation
+        cat final.txt potential_pathxss_urls.txt secondtool.txt | uniq | sort -u > kontol.txt
+        cat kontol.txt | sed -e 's/:80//g' -e 's/:443//g' > memek.txt
+        cat memek.txt | sed 's/^.*://' > final_clean.txt
     fi
 
-    # Run XSS scanners
+    # Run XSS scanners after cleanup
     run_xss_scanners
 }
 
@@ -407,14 +418,13 @@ run_xss_scanners() {
     echo "[*] Running XSS scanners..."
 
     # Run reflection XSS scanner
-    python3 reflection.py -l output/$domain/final_clean.txt --threads 20 --rua
+    python3 reflection.py -l final_clean.txt --threads 20 --rua
 
     # Run stored XSS scanner
-    python3 stored.py -l output/$domain/final_clean.txt --threads 20 --rua
+    python3 stored.py -l final_clean.txt --threads 20 --rua
 
     # Clean up all intermediate files but keep final.txt and domains.txt
     find output/$domain/ -type f ! -name 'domains.txt' ! -name 'final_clean.txt' ! -name 'final.txt' -delete
-
 }
 
 #Function to try sql injection
