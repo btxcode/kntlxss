@@ -38,10 +38,44 @@ install_tools() {
     sudo chmod +x chromedriver
     sudo cp chromedriver /usr/local/bin/
 
+    # Pengecekan apakah Arjun terinstall dengan benar
+    if ! command -v arjun &> /dev/null; then
+        echo "[ERROR] arjun is not installed."
+    else
+        echo "[*] arjun successfully installed."
+    fi
+
+    # Pengecekan apakah Chrome dan chromedriver terinstall dengan benar
+    if ! command -v google-chrome &> /dev/null; then
+        echo "[ERROR] google-chrome is not installed."
+    else
+        echo "[*] google-chrome successfully installed."
+    fi
+
+    if ! command -v chromedriver &> /dev/null; then
+        echo "[ERROR] chromedriver is not installed."
+    else
+        echo "[*] chromedriver successfully installed."
+    fi
+
+    # Pengecekan apakah hakrawler terinstall dengan benar
+    if ! command -v hakrawler &> /dev/null; then
+        echo "[ERROR] hakrawler is not installed."
+    else
+        echo "[*] hakrawler successfully installed."
+    fi
+    
     # Install gf tool (Gf Patterns)
     go install github.com/tomnomnom/gf@latest
     sudo mv ~/go/bin/gf /usr/local/bin/
     sudo chmod +x /usr/local/bin/gf
+
+    # Pengecekan apakah gf terinstall dengan benar
+    if ! command -v gf &> /dev/null; then
+        echo "[ERROR] gf is not installed."
+    else
+        echo "[*] gf successfully installed."
+    fi
 
     # Remove existing .gf directory if it exists and clone the new one
     if [ -d "~/.gf" ]; then
@@ -58,28 +92,78 @@ install_tools() {
     sudo mv ~/go/bin/waybackurls /usr/local/bin/
     sudo chmod +x /usr/local/bin/waybackurls
 
-    # Install gau
+    # Pengecekan apakah waybackurls terinstall dengan benar
+    if ! command -v waybackurls &> /dev/null; then
+        echo "[ERROR] waybackurls is not installed."
+    else
+        echo "[*] waybackurls successfully installed."
+    fi
+
+   # Install gau
     go install github.com/lc/gau/v2/cmd/gau@latest
     sudo mv ~/go/bin/gau /usr/local/bin/
     sudo chmod +x /usr/local/bin/gau
+
+    # Pengecekan apakah gau terinstall dengan benar
+    if ! command -v gau &> /dev/null; then
+        echo "[ERROR] gau is not installed."
+    else
+        echo "[*] gau successfully installed."
+    fi
+
 
     # Install waymore
     sudo pip3 install git+https://github.com/xnl-h4ck3r/waymore.git -v
     sudo pip3 install --upgrade waymore  # Ensure the latest version is installed
 
-    # Install katana
+    # Pengecekan apakah waymore terinstall dengan benar
+    if ! pip3 show waymore &> /dev/null; then
+        echo "[ERROR] waymore is not installed."
+    else
+        echo "[*] waymore successfully installed."
+    fi
+    
+   # Install katana
     go install github.com/projectdiscovery/katana/cmd/katana@latest
     sudo mv ~/go/bin/katana /usr/local/bin/
     sudo chmod +x /usr/local/bin/katana
 
+    # Pengecekan apakah katana terinstall dengan benar
+    if ! command -v katana &> /dev/null; then
+        echo "[ERROR] katana is not installed."
+    else
+        echo "[*] katana successfully installed."
+    fi
+
     # Install Subdominator
     sudo pip3 install git+https://github.com/RevoltSecurities/Subdominator
+
+    # Pengecekan apakah Subdominator terinstall dengan benar
+    if ! pip3 show Subdominator &> /dev/null; then
+        echo "[ERROR] Subdominator is not installed."
+    else
+        echo "[*] Subdominator successfully installed."
+    fi
 
     # Install Subprober
     sudo pip3 install git+https://github.com/sanjai-AK47/Subprober.git
 
+    # Pengecekan apakah Subprober terinstall dengan benar
+    if ! pip3 show Subprober &> /dev/null; then
+        echo "[ERROR] Subprober is not installed."
+    else
+        echo "[*] Subprober successfully installed."
+    fi
+
     # Install uro
     sudo pip3 install uro
+
+    # Pengecekan apakah uro terinstall dengan benar
+    if ! pip3 show uro &> /dev/null; then
+        echo "[ERROR] uro is not installed."
+    else
+        echo "[*] uro successfully installed."
+    fi
 
     # Installing Depedency python
     sudo pip3 install -r requirements.txt
@@ -130,10 +214,11 @@ check_tools() {
 # Function to prompt for domain input and proceed with domain enumeration and crawling
 prompt_domain_and_proceed() {
     read -p "Please enter a domain name (example.com): " domain
+    output_dir="output/$domain"
     echo "[*] Domain name entered: $domain"
 
     # Create output directory for the domain if it doesn't exist
-    mkdir -p output/$domain
+    mkdir -p "output_dir"
 
     enumerate_domains_and_proceed
 }
@@ -300,7 +385,7 @@ cleanup_intermediate_files() {
 
         # Final merging and cleanup
         cat "output/$domain/xss.txt" "output/$domain/sqli.txt" "output/$domain/ssrf.txt" "output/$domain/ssti.txt" "output/$domain/urlparams.txt" "output/$domain/redirect.txt" "output/$domain/idor.txt" "output/$domain/lfi.txt" | uniq > "output/$domain/final.txt"
-        sed -e 's/:80//g' -e 's/:443//g' "output/$domain/final.txt" "output/$domain/potential_pathxss_urls.txt" | sort -u > "output/$domain/final_clean.txt"
+        sed -e 's/:80//g' -e 's/:443//g' "output/$domain/final.txt" | sed -e 's/:80//g' -e 's/:443//g' "output/$domain/potential_pathxss_urls.txt" | sort -u > "output/$domain/final_clean.txt"
     fi
 
     # Clean up all intermediate files but keep final.txt and domains.txt
