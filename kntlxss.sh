@@ -369,7 +369,7 @@ final_filtering() {
         cat filtered_urls_with_params.txt output_php_asp.txt clean_urls.txt arjun_params.txt >> final_urls.txt
         cat filtered_urls_without_params.txt clean_urls.txt >> potential_pathxss_urls.txt
     fi
-    
+    find -type f ! -name 'final_urls.txt' ! -name 'potential_pathxss_urls.txt' -delete
     cleanup_intermediate_files
 }
 
@@ -392,14 +392,15 @@ cleanup_intermediate_files() {
 
         # Final merging of the files into one
         cat xss.txt sqli.txt | uniq | sort -u > final.txt
-
+        find -type f ! -name 'final.txt' -delete
+        
         # Run the second tools and update final clean
-        subfinder -u $domain -all -silent | httpx-toolkit > hasilsub.txt
-        cat hasilsub.txt | uniq | sort -u > finalsub.txt
-        bash ../../xsscrawler.sh -l finalsub.txt -o secondtool.txt
+        subfinder -u $domain -all -silent | httpx-toolkit > subfinderdomain.txt
+        bash ../../xsscrawler.sh -l subfinderdomain.txt -o secondtool.txt
+        rm subfinderdomain.txt
 
         # Final clean preparation
-        cat final.txt potential_pathxss_urls.txt secondtool.txt | uniq | sort -u > kontol.txt
+        cat *.txt | uniq | sort -u > kontol.txt
         cat kontol.txt | sed -e 's/:80//g' > final_clean.txt
         #cat memek.txt | sed 's/^.*://' > 
     fi
