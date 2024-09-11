@@ -405,8 +405,8 @@ cleanup_intermediate_files() {
 
         # Final clean preparation
         cat final.txt potential_pathxss_urls.txt secondtool.txt | uniq | sort -u > kontol.txt
-        cat kontol.txt | sed -e 's/:80//g' -e 's/:443//g' > memek.txt
-        cat memek.txt | sed 's/^.*://' > final_clean.txt
+        cat kontol.txt | sed -e 's/:80//g' -e 's/:443//g' > final_clean.txt
+        #cat memek.txt | sed 's/^.*://' > 
     fi
 
     # Run XSS scanners after cleanup
