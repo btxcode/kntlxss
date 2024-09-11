@@ -416,10 +416,10 @@ run_xss_scanners() {
     echo "[*] Running XSS scanners..."
 
     # Run reflection XSS scanner
-    python3 reflection.py -l final_clean.txt --threads 20 --rua
+    python3 reflection.py -l output/$domain/final_clean.txt --threads 20 --rua
 
     # Run stored XSS scanner
-    python3 stored.py -l final_clean.txt --threads 20 --rua
+    python3 stored.py -l output/$domain/final_clean.txt --threads 20 --rua
 
     # Clean up all intermediate files but keep final.txt and domains.txt
     find output/$domain/ -type f ! -name 'domains.txt' ! -name 'final_clean.txt' ! -name 'final.txt' -delete
