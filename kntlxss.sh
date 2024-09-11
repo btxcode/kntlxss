@@ -226,7 +226,8 @@ show_spinner() {
         sleep $delay
         printf "\b\b\b\b\b\b"
     done
-    printf "    \b\b\b\b"
+    printf "\b\b\b\b\b\b"  # Clear spinner when done
+    echo " [DONE]"          # Print done message
 }
 
 # Function to prompt for domain input and proceed with domain enumeration and crawling
