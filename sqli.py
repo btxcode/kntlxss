@@ -1,17 +1,63 @@
+de
 import requests
 import argparse
+from urllib.parse import urlparse
 from termcolor import colored
 from fake_useragent import UserAgent
-from urllib.parse import urlparse
-import re
 
-# Membaca payloads dari file
+# Fungsi untuk membaca payloads dari file payloadsql.txt
 def load_payloads(payload_file):
     with open(payload_file, 'r') as file:
         return [line.strip() for line in file.readlines()]
 
-# Deteksi error berdasarkan pola error SQL yang umum
-def detect_sql_error(response_text):
+# Fungsi untuk menyimpan hasil sukses ke dalam file
+def log_success_to_txt(txt_file, url, payload, status_code, response_time, response_content, db_type, user_agent=None):
+    with open(txt_file, mode='a') as file:
+        file.write(f"[SUCCESS] URL: {url}\n")
+        file.write(f"Payload: {payload}\n")
+        file.write(f"Database Type: {db_type}\n")
+        file.write(f"Status Code: {status_code}\n")
+        file.write(f"Response Time: {response_time}ms\n")
+        file.write(f"Response Content: {response_content[:200]}...\n")  # Log sebagian isi konten respons
+        if user_agent:
+            file.write(f"User-Agent: {user_agent}\n")
+        file.write("\n")
+
+# Fungsi untuk melakukan pengujian SQLi
+def test_sqli(url, payloads, output_file, use_random_user_agent):
+    domain = get_domain(url)
+    success_txt_file = f"sql_{domain}.txt"
+
+    ua = UserAgent() if use_random_user_agent else None
+
+    for payload in payloads:
+        try:
+            target_url = f"{url}{payload}"
+            headers = {}
+            if use_random_user_agent:
+                headers["User-Agent"] = ua.random
+            else:
+                headers["User-Agent"] = "Mozilla/5.0"
+            
+            response = requests.get(target_url, timeout=5, headers=headers)
+
+            db_type = detect_sql_error(response)
+            if db_type:
+                user_agent = headers.get("User-Agent")
+                print(colored(f"[SUCCESS] SQLi found on: {target_url}", "green"))
+                print(f"Payload: {payload}")
+                print(f"Database Type: {db_type}")
+                print(f"Status Code: {response.status_code}")
+                print(f"Response Time: {response.elapsed.total_seconds() * 1000}ms")
+                log_success_to_txt(success_txt_file, target_url, payload, response.status_code, response.elapsed.total_seconds() * 1000, response.text, db_type, user_agent)
+            else:
+                print(colored(f"[FAILED] No SQL error detected: {target_url}", "red"))
+
+        except Exception as e:
+            print(colored(f"[ERROR] Failed to test {url} with error: {e}", "red"))
+
+# Fungsi untuk mendeteksi jenis database berdasarkan pola error SQL
+def detect_sql_error(response):
     sql_errors = {
         "MySQL": [
             "You have an error in your SQL syntax",
@@ -53,53 +99,18 @@ def detect_sql_error(response_text):
             "Invalid Query"
         ]
     }
-
-    # Periksa setiap pola error di respons
-    for db, patterns in sql_errors.items():
+    
+    for db_type, patterns in sql_errors.items():
         for pattern in patterns:
-            if re.search(pattern, response_text, re.IGNORECASE):
-                return db, pattern
-    return None, None
+            if pattern.lower() in response.text.lower():
+                return db_type
+    return None
 
-# Fungsi untuk mengirimkan payload dan mengecek SQLi
-def test_sql_injection(url, payload, headers):
-    try:
-        # Buat URL dengan payload
-        if 'INJECT_HERE' in url:
-            target_url = url.replace("INJECT_HERE", payload)
-        else:
-            target_url = f"{url}{payload}"
-
-        # Kirim request GET ke URL
-        response = requests.get(target_url, headers=headers, timeout=5)
-
-        # Periksa apakah ada error SQL di respons
-        db_type, error_pattern = detect_sql_error(response.text)
-        if db_type:
-            print(colored(f"[SUCCESS] Potential SQLi detected on: {target_url}", "green"))
-            print(f"Database: {db_type}")
-            print(f"Error Pattern: {error_pattern}")
-            print(f"Status Code: {response.status_code}")
-        else:
-            print(colored(f"[FAILED] No SQLi detected on: {target_url}", "red"))
-    except Exception as e:
-        print(colored(f"[ERROR] Failed to test {url} with error: {e}", "red"))
-
-# Fungsi utama untuk menjalankan pengujian SQLi
-def sqli_test(urls, payloads, use_random_user_agent):
-    ua = UserAgent() if use_random_user_agent else None
-
-    for url in urls:
-        print(colored(f"[INFO] Testing URL: {url}", "blue"))
-
-        for payload in payloads:
-            headers = {}
-            if use_random_user_agent:
-                headers["User-Agent"] = ua.random
-            else:
-                headers["User-Agent"] = "Mozilla/5.0"
-
-            test_sql_injection(url, payload, headers)
+# Fungsi untuk mendapatkan domain tanpa subdomain
+def get_domain(url):
+    parsed_url = urlparse(url)
+    domain = parsed_url.netloc.split('.')[-2] + '.' + parsed_url.netloc.split('.')[-1]
+    return domain
 
 # Fungsi untuk membaca URL dari file
 def load_urls(url_file):
