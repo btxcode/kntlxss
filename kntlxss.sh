@@ -408,7 +408,7 @@ cleanup_intermediate_files() {
     # After all processes, change back to the original directory
     cd "$original_dir"
     # Clean up all intermediate files but keep final.txt and domains.txt
-    find output/$domain/ -type f ! -name 'subfinderdomain.txt' ! -name 'final_clean.txt' ! -name 'final.txt' -delete
+    find output/$domain/ -type f ! -name 'final_clean.txt'  -delete
     # Run XSS scanners after cleanup
     run_xss_scanners
 }
