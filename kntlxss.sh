@@ -226,12 +226,6 @@ prompt_domain_and_proceed() {
     cd "output/$domain"
 
     enumerate_domains_and_proceed
-
-    # After all processes, change back to the original directory
-    cd "$original_dir"
-
-    # Now run the XSS scanners from the original directory
-    run_xss_scanners
 }
 
 # Function to enumerate and filter domains
@@ -340,7 +334,8 @@ initial_filtering() {
     else
         cat uro_filtered.txt | uniq | sort -u > final_filtered_urls.txt
     fi
-
+    
+    find -type f ! -name 'final_filtered_urls.txt' -delete
     # Continue to final filtering
     final_filtering
 }
@@ -359,22 +354,22 @@ final_filtering() {
         grep -v "http[^ ]*\.[^/]*\." final_filtered_urls.txt | grep "http" | sort > clean_urls.txt
 
         # Run Arjun in passive mode in the background
-        arjun --passive -i "output_php_asp.txt" -w parameters.txt -oT "arjun_passive.txt" &
+        arjun --passive -i output_php_asp.txt -w parameters.txt -oT arjun_passive.txt &
 
         # Run Arjun in active mode in the foreground
-        arjun -i "output_php_asp.txt" -w parameters.txt -t 20 -T 5 -oT "arjun_active.txt"
+        arjun -i output_php_asp.txt -w parameters.txt -t 20 -T 5 -oT arjun_active.txt
 
         # Wait for passive mode to complete (if not already finished)
         wait
 
         # Merge the results from passive and active scanning
-        cat "arjun_passive.txt" "arjun_active.txt" | sort -u > "arjun_params.txt"
+        cat arjun_passive.txt arjun_active.txt | sort -u > arjun_params.txt
 
         # Merging all results into final_temp.txt
-        cat "filtered_urls_with_params.txt" "filtered_urls_without_params.txt" "output_php_asp.txt" "clean_urls.txt" "arjun_params.txt" > "final_urls.txt"
-        cat "filtered_urls_without_params.txt" "clean_urls.txt" > "potential_pathxss_urls.txt"
+        cat filtered_urls_with_params.txt output_php_asp.txt clean_urls.txt arjun_params.txt >> final_urls.txt
+        cat filtered_urls_without_params.txt clean_urls.txt >> potential_pathxss_urls.txt
     fi
-
+    
     cleanup_intermediate_files
 }
 
@@ -388,27 +383,29 @@ cleanup_intermediate_files() {
         # Apply gf patterns and prepare final files
         cat final_urls.txt | gf xss | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > xss.txt
         cat final_urls.txt | gf sqli | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > sqli.txt
-        cat final_urls.txt | gf ssrf | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > ssrf.txt
-        cat final_urls.txt | gf ssti | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > ssti.txt
-        cat final_urls.txt | gf urlparams | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > urlparams.txt
-        cat final_urls.txt | gf redirect | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > redirect.txt
-        cat final_urls.txt | gf idor | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > idor.txt
-        cat final_urls.txt | gf lfi | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > lfi.txt
+        #cat final_urls.txt | gf ssrf | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > ssrf.txt
+        #cat final_urls.txt | gf ssti | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > ssti.txt
+        #cat final_urls.txt | gf urlparams | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > urlparams.txt
+        #cat final_urls.txt | gf redirect | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > redirect.txt
+        #cat final_urls.txt | gf idor | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > idor.txt
+        #cat final_urls.txt | gf lfi | sed 's/=.*/=/' | sed 's/URL: //' | uniq | sort -u > lfi.txt
 
         # Final merging of the files into one
-        cat xss.txt sqli.txt ssrf.txt ssti.txt urlparams.txt redirect.txt idor.txt lfi.txt | uniq | sort -u > final.txt
+        cat xss.txt sqli.txt | uniq | sort -u > final.txt
 
         # Run the second tools and update final clean
         subfinder -u $domain -all -silent | httpx-toolkit > hasilsub.txt
         cat hasilsub.txt | uniq | sort -u > finalsub.txt
-        bash xsscrawler.sh -l finalsub.txt -o secondtool.txt
+        bash ../../xsscrawler.sh -l finalsub.txt -o secondtool.txt
 
         # Final clean preparation
         cat final.txt potential_pathxss_urls.txt secondtool.txt | uniq | sort -u > kontol.txt
-        cat kontol.txt | sed -e 's/:80//g' -e 's/:443//g' > final_clean.txt
+        cat kontol.txt | sed -e 's/:80//g' > final_clean.txt
         #cat memek.txt | sed 's/^.*://' > 
     fi
 
+    # After all processes, change back to the original directory
+    cd "$original_dir"
     # Run XSS scanners after cleanup
     run_xss_scanners
 }
