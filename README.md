@@ -15,11 +15,12 @@
 ;   |,'     ;   |.'                                 ;   |/   \  ' |                           
 '---'       '---'                                   `---'     `--`                            
 ``` 
-By  btxcode
-X: https://x.com/btxcode
-Supported GOME Team
 
-# XSS and SQLi Scanner
+**Version:** 1.0.0  
+**Author:** btxcode  
+**Supported By:** GOME Team
+
+# XSS and SQLi Scanner (sql still develop)
 
 ## Overview
 
@@ -51,3 +52,7 @@ cd kntlxss
 chmod +x *
 ./kntlxss.sh
 ```
+
+## License
+
+This project is licensed under the MIT License.
