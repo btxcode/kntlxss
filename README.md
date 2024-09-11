@@ -42,6 +42,10 @@ The tools can be executed in parallel for faster results and include features li
 - **Dependencies**:
   - Python 3.x
   - Google Chrome (for Selenium-based tests)
+    ```
+    Downlaod :
+    https://drive.google.com/file/d/15jfkq584QjJdSdpJsByLFgHi1vUeIIow/view?usp=drive_link
+    ```
   - GF (TomNomNom's Gf Patterns)
   - Go language
   - Arjun, Waybackurls, Gau, Katana, Hakrawler
