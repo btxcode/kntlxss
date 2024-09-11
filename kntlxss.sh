@@ -392,7 +392,9 @@ cleanup_intermediate_files() {
         bash xsscrawler.sh -l output/$domain/finalsub.txt -o output/$domain/secondtool.txt
         
         #cat "output/$domain/final.txt" "output/$domain/potential_pathxss_urls.txt" "output/$domain/secondtool.txt" | uniq | sort -u > "output/$domain/final_clean.txt"
-        cat "output/$domain/final.txt" "output/$domain/potential_pathxss_urls.txt" "output/$domain/secondtool.txt" | uniq | sort -u | sed -e 's/:80//g' -e 's/:443//g' > "output/$domain/final_clean.txt"
+        #cat "output/$domain/final.txt" "output/$domain/potential_pathxss_urls.txt" "output/$domain/secondtool.txt" | uniq | sort -u | sed -e 's/:80//g' -e 's/:443//g' > "output/$domain/final_clean.txt"
+        cat "output/$domain/final.txt" "output/$domain/potential_pathxss_urls.txt" "output/$domain/secondtool.txt" | uniq | sort -u | sed -e 's/:80//g' -e 's/:443//g' | sed 's/^.*://' > "output/$domain/final_clean.txt"
+
 
     fi
 
