@@ -347,16 +347,16 @@ final_filtering() {
         grep -v "http[^ ]*\.[^/]*\." output/$domain/final_filtered_urls.txt | grep "http" | sort > output/$domain/clean_urls.txt
 
         # Run Arjun in passive mode in the background
-        arjun --passive -i "output/$domain//output_php_asp.txt" -w parameters.txt -oT "output/$domain//arjun_passive.txt" &
+        arjun --passive -i "output/$domain/output_php_asp.txt" -w parameters.txt -oT "output/$domain/arjun_passive.txt" &
 
         # Run Arjun in active mode in the foreground
-        arjun -i "output/$domain//output_php_asp.txt" -w parameters.txt -t 20 -T 5 -oT "output/$domain//arjun_active.txt"
+        arjun -i "output/$domain/output_php_asp.txt" -w parameters.txt -t 20 -T 5 -oT "output/$domain/arjun_active.txt"
 
         # Wait for passive mode to complete (if not already finished)
         wait
 
         # Merge the results from passive and active scanning
-        cat "output/$domain//arjun_passive.txt" "output/$domain//arjun_active.txt" | sort -u > "output/$domain//arjun_params.txt"
+        cat "output/$domain/arjun_passive.txt" "output/$domain/arjun_active.txt" | sort -u > "output/$domain/arjun_params.txt"
 
         # Merging all results into final_temp.txt in the domain-specific folder
         cat "output/$domain/filtered_urls_with_params.txt" "output/$domain/filtered_urls_without_params.txt" "output/$domain/output_php_asp.txt" "output/$domain/clean_urls.txt" "output/$domain/arjun_params.txt" > "output/$domain/final_urls.txt"
