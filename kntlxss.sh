@@ -214,11 +214,10 @@ check_tools() {
 # Function to prompt for domain input and proceed with domain enumeration and crawling
 prompt_domain_and_proceed() {
     read -p "Please enter a domain name (example.com): " domain
-    output_dir="output/$domain"
     echo "[*] Domain name entered: $domain"
 
     # Create output directory for the domain if it doesn't exist
-    mkdir -p "output_dir"
+    mkdir -p "output/$domain"
 
     enumerate_domains_and_proceed
 }
