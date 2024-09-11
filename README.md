@@ -20,7 +20,7 @@
 **Author:** btxcode  
 **Supported By:** GOME Team
 
-# XSS and SQLi Scanner (sql still develop)
+# XSS and SQLi Scanner
 
 ## Overview
 
