@@ -406,6 +406,15 @@ run_xss_scanners() {
     python3 stored.py -l output/$domain/final_clean.txt --threads 1 --rua
 }
 
+
+#Function to try sql injection
+try_sqli() {
+    echo "[*] Running SQLi testing..."
+    
+    # Run sqli
+    python3 sqli.py -l output/$domain/final_clean.txt --threads 1 --rua
+}
+
 # Quit function to clear terminal
 quit_and_clear_terminal() {
     echo "[*] Stopping all background processes and cleaning up memory..."
@@ -441,15 +450,17 @@ while true; do
     echo "1. Install all tools"
     echo "2. Check tools installation and permissions"
     echo "3. Enter a domain and start process XSS scanner"
-    echo "4. Quit"
+    echo "4. Try Sql Injection Testing"
+    echo "5. Quit"
 
     read -p "Select an option: " option
 
     case $option in
         1) install_tools ;;
-        2) heck_tools ;;
-        3) prompt_domain_and_proceed ;; c
-        4) quit_and_clear_terminal ;;
+        2) check_tools ;;
+        3) prompt_domain_and_proceed ;;
+        4) try_sqli ;;
+        5) quit_and_clear_terminal ;;
         *) echo "Invalid option." ;;
     esac
 done
