@@ -394,9 +394,6 @@ cleanup_intermediate_files() {
         cat "output/$domain/final.txt" "output/$domain/potential_pathxss_urls.txt" "output/$domain/secondtool.txt" | uniq | sort -u > "output/$domain/final_clean.txt"
     fi
 
-    # Clean up all intermediate files but keep final.txt and domains.txt
-    find output/$domain/ -type f ! -name 'domains.txt' ! -name 'final_clean.txt' ! -name 'final.txt' -delete
-
     # Run XSS scanners
     run_xss_scanners
 }
@@ -410,8 +407,11 @@ run_xss_scanners() {
 
     # Run stored XSS scanner
     python3 stored.py -l output/$domain/final_clean.txt --threads 20 --rua
-}
 
+    # Clean up all intermediate files but keep final.txt and domains.txt
+    find output/$domain/ -type f ! -name 'domains.txt' ! -name 'final_clean.txt' ! -name 'final.txt' -delete
+
+}
 
 #Function to try sql injection
 try_sqli() {
