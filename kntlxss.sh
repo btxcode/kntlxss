@@ -354,10 +354,10 @@ final_filtering() {
         grep -v "http[^ ]*\.[^/]*\." final_filtered_urls.txt | grep "http" | sort > clean_urls.txt
 
         # Run Arjun in passive mode in the background
-        arjun --passive -i output_php_asp.txt -w parameters.txt -oT arjun_passive.txt &
+        arjun --passive -i output_php_asp.txt -w ../../parameters.txt -oT arjun_passive.txt &
 
         # Run Arjun in active mode in the foreground
-        arjun -i output_php_asp.txt -w parameters.txt -t 20 -T 5 -oT arjun_active.txt
+        arjun -i output_php_asp.txt -w ../../parameters.txt -t 20 -T 5 -oT arjun_active.txt
 
         # Wait for passive mode to complete (if not already finished)
         wait
@@ -395,7 +395,7 @@ cleanup_intermediate_files() {
         find -type f ! -name 'final.txt' -delete
         
         # Run the second tools and update final clean
-        subfinder -u $domain -all -silent | httpx-toolkit > subfinderdomain.txt
+        subfinder -d $domain -all -silent | httpx-toolkit > subfinderdomain.txt
         bash ../../xsscrawler.sh -l subfinderdomain.txt -o secondtool.txt
         rm subfinderdomain.txt
 
