@@ -211,6 +211,24 @@ check_tools() {
     done
 }
 
+
+#===============================================================================================================================================#
+
+# Function to display a spinner for loading animation
+show_spinner() {
+    local pid=$1
+    local delay=0.1
+    local spinstr='|/-\'
+    while [ "$(ps a | awk '{print $1}' | grep $pid)" ]; do
+        local temp=${spinstr#?}
+        printf " [%c]  " "$spinstr"
+        local spinstr=$temp${spinstr%"$temp"}
+        sleep $delay
+        printf "\b\b\b\b\b\b"
+    done
+    printf "    \b\b\b\b"
+}
+
 # Function to prompt for domain input and proceed with domain enumeration and crawling
 prompt_domain_and_proceed() {
     read -p "Please enter a domain name (example.com): " domain
@@ -234,11 +252,13 @@ enumerate_domains_and_proceed() {
     if [ -f "domains.txt" ]; then
         echo "[*] domains.txt already exists, skipping Subdominator."
     else
-        subdominator -d $domain -o domains.txt
+        subdominator -d $domain -o domains.txt &
+        show_spinner $!
         echo "[*] Domain enumeration complete."
     fi
 
-    crawl_and_filter_urls
+    crawl_and_filter_urls &
+    show_spinner $!
 }
 
 # Function to crawl and filter URLs
@@ -249,35 +269,40 @@ crawl_and_filter_urls() {
     if [ -f "wayback.txt" ]; then
         echo "[*] waybackurls output already exists, skipping."
     else
-        waybackurls http://$domain | tee -a wayback.txt
+        waybackurls http://$domain | tee -a wayback.txt &
+        show_spinner $!
     fi
 
     # Check if gau output exists
     if [ -f "gau.txt" ]; then
         echo "[*] GAU output already exists, skipping."
     else
-        gau http://$domain | tee -a gau.txt
+        gau http://$domain | tee -a gau.txt &
+        show_spinner $!
     fi
 
     # Check if waymore output exists
     if [ -f "waymore.txt" ]; then
         echo "[*] waymore output already exists, skipping."
     else
-        waymore -i http://$domain -mode U -oU waymore.txt
+        waymore -i http://$domain -mode U -oU waymore.txt &
+        show_spinner $!
     fi
 
     # Check if katana output exists
     if [ -f "katana.txt" ]; then
         echo "[*] katana output already exists, skipping."
     else
-        katana -u http://$domain -kf 3 | tee -a katana.txt
+        katana -u http://$domain -kf 3 | tee -a katana.txt &
+        show_spinner $!
     fi
 
     # Merging all results into one file in the domain-specific folder
     if [ -f "combined_urls.txt" ]; then
         echo "[*] combined_urls.txt already exists, skipping."
     else
-        cat wayback.txt gau.txt waymore.txt katana.txt > combined_urls.txt
+        cat wayback.txt gau.txt waymore.txt katana.txt > combined_urls.txt &
+        show_spinner $!
     fi
 
     # Running further filtering and unique check
@@ -285,7 +310,8 @@ crawl_and_filter_urls() {
         echo "[*] unique_urls.txt already exists, skipping."
     else
         echo "[*] Merging and filtering URLs..."
-        cat combined_urls.txt | uniq | sort -u > unique_urls.txt
+        cat combined_urls.txt | uniq | sort -u > unique_urls.txt &
+        show_spinner $!
     fi
 
     # Hakrawler & Subprober filtering
@@ -293,19 +319,23 @@ crawl_and_filter_urls() {
         echo "[*] Hakrawler and Subprober output already exists, skipping."
     else
         echo "[*] Running hakrawler and Subprober for domain filtering..."
-        cat domains.txt | httpx-toolkit | hakrawler | tee -a links.txt
-        subprober -f domains.txt -sc -ar -o subprober_urls.txt -nc -mc 200 -c 30
+        cat domains.txt | httpx-toolkit | hakrawler | tee -a links.txt &
+        show_spinner $!
+        subprober -f domains.txt -sc -ar -o subprober_urls.txt -nc -mc 200 -c 30 &
+        show_spinner $!
     fi
 
     # Check if all_urls.txt exists
     if [ -f "all_urls.txt" ]; then
         echo "[*] all_urls.txt already exists, skipping."
     else
-        cat unique_urls.txt links.txt subprober_urls.txt > all_urls.txt
+        cat unique_urls.txt links.txt subprober_urls.txt > all_urls.txt &
+        show_spinner $!
     fi
 
     # Continue with filtering
-    initial_filtering
+    initial_filtering &
+    show_spinner $!
 }
 
 # Function to perform initial filtering on URLs
@@ -316,8 +346,10 @@ initial_filtering() {
     if [ -f "filtered_urls.txt" ]; then
         echo "[*] filtered_urls.txt already exists, skipping."
     else
-        cat all_urls.txt | grep -E -v '\.css$|\.js$|\.jpg$|\.JPG$|\.PNG$|\.GIF$|\.avi$|\.dll$|\.pl$|\.webm$|\.c$|\.py$|\.bat$|\.tar$|\.swp$|\.tmp$|\.sh$|\.deb$|\.exe$|\.zip$|\.mpeg$|\.mpg$|\.flv$|\.wmv$|\.wma$|\.aac$|\.m4a$|\.ogg$|\.mp4$|\.mp3$|\.bat$|\.dat$|\.cfg$|\.cfm$|\.bin$|\.jpeg$|\.JPEG$|\.ps.gz$|\.gz$|\.gif$|\.tif$|\.tiff$|\.csv$|\.png$|\.ttf$|\.ppt$|\.pptx$|\.ppsx$|\.doc$|\.woff$|\.xlsx$|\.xls$|\.mpp$|\.mdb$|\.json$|\.woff2$|\.icon$|\.pdf$|\.docx$|\.svg$|\.txt$|\.jar$|\.0$|\.1$|\.2$|\.3$|\.4$|\.m4r$|\.kml$|\.pro$|\.yao$|\.gcn3$|\.PDF$|\.egy$|\.par$|\.lin$|\.yht$' > filtered_urls.txt
-        grep -E '^https?://' filtered_urls.txt | sed 's/\[200\]//g' > filtered_cleaned_urls.txt
+        cat all_urls.txt | grep -E -v '\.css$|\.js$|\.jpg$|\.JPG$|\.PNG$|\.GIF$|\.avi$|\.dll$|\.pl$|\.webm$|\.c$|\.py$|\.bat$|\.tar$|\.swp$|\.tmp$|\.sh$|\.deb$|\.exe$|\.zip$|\.mpeg$|\.mpg$|\.flv$|\.wmv$|\.wma$|\.aac$|\.m4a$|\.ogg$|\.mp4$|\.mp3$|\.bat$|\.dat$|\.cfg$|\.cfm$|\.bin$|\.jpeg$|\.JPEG$|\.ps.gz$|\.gz$|\.gif$|\.tif$|\.tiff$|\.csv$|\.png$|\.ttf$|\.ppt$|\.pptx$|\.ppsx$|\.doc$|\.woff$|\.xlsx$|\.xls$|\.mpp$|\.mdb$|\.json$|\.woff2$|\.icon$|\.pdf$|\.docx$|\.svg$|\.txt$|\.jar$|\.0$|\.1$|\.2$|\.3$|\.4$|\.m4r$|\.kml$|\.pro$|\.yao$|\.gcn3$|\.PDF$|\.egy$|\.par$|\.lin$|\.yht$' > filtered_urls.txt &
+        show_spinner $!
+        grep -E '^https?://' filtered_urls.txt | sed 's/\[200\]//g' > filtered_cleaned_urls.txt &
+        show_spinner $!
     fi
 
     # Running uro for further filtering
@@ -325,19 +357,23 @@ initial_filtering() {
         echo "[*] uro_filtered.txt already exists, skipping."
     else
         echo "[*] Running uro for further filtering..."
-        cat filtered_cleaned_urls.txt | uro -b css js jpg JPG PNG GIF avi dll pl webm c py bat tar swp tmp sh deb exe zip mpeg mpg flv wmv wma aac m4a ogg mp4 mp3 bat dat cfg cfm bin jpeg JPEG ps.gz gz gif tif tiff csv png ttf ppt pptx ppsx doc woff xlsx xls mpp mdb json woff2 icon pdf docx svg txt jar 0 1 2 3 4 m4r kml pro yao gcn3 PDF egy par lin yht | tee -a uro_filtered.txt
+        cat filtered_cleaned_urls.txt | uro -b css js jpg JPG PNG GIF avi dll pl webm c py bat tar swp tmp sh deb exe zip mpeg mpg flv wmv wma aac m4a ogg mp4 mp3 bat dat cfg cfm bin jpeg JPEG ps.gz gz gif tif tiff csv png ttf ppt pptx ppsx doc woff xlsx xls mpp mdb json woff2 icon pdf docx svg txt jar 0 1 2 3 4 m4r kml pro yao gcn3 PDF egy par lin yht | tee -a uro_filtered.txt &
+        show_spinner $!
     fi
 
     # Check if final_filtered_urls.txt exists
     if [ -f "final_filtered_urls.txt" ]; then
         echo "[*] final_filtered_urls.txt already exists, skipping."
     else
-        cat uro_filtered.txt | uniq | sort -u > final_filtered_urls.txt
+        cat uro_filtered.txt | uniq | sort -u > final_filtered_urls.txt &
+        show_spinner $!
     fi
     
-    find -type f ! -name 'final_filtered_urls.txt' -delete
+    find -type f ! -name 'final_filtered_urls.txt' -delete &
+    show_spinner $!
     # Continue to final filtering
-    final_filtering
+    final_filtering &
+    show_spinner $!
 }
 
 # Function to filter URLs and perform final filtering
