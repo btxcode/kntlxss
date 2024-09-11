@@ -1,4 +1,3 @@
-de
 import requests
 import argparse
 from urllib.parse import urlparse
