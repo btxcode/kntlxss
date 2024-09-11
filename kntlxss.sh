@@ -30,8 +30,8 @@ install_tools() {
     echo "[*] Installing required tools..."
     sudo -v || { echo "[ERROR] Sudo required. Please run with sudo privileges."; exit 1; }
 
-    # Install Chrome
-    sudo apt update && sudo apt install libu2f-udev golang-go -y
+    # Install Chrome, Arjun (HTTP parameter discovery tool) & hakrawler
+    sudo apt update && sudo apt install libu2f-udev golang-go httpxx-toolkit arjun hakrawler -y
     sudo dpkg -i google-chrome-stable_114.0.5735.90-1_amd64.deb
 
     # Copy chromedriver and set execute permissions
@@ -52,10 +52,6 @@ install_tools() {
     echo "[*] Cloning .gf patterns..."
     git clone https://github.com/PushkraJ99/.gf
     mv .gf ~/
-
-    # Install Arjun (HTTP parameter discovery tool) & hakrawler
-    sudo apt update
-    sudo apt install arjun hakrawler -y
 
     # Install waybackurls
     go install github.com/tomnomnom/waybackurls@latest
@@ -87,8 +83,6 @@ install_tools() {
 
     echo "[*] Tools installed successfully."
 }
-
-#!/bin/bash
 
 # Function to prompt for domain input and proceed with domain enumeration and crawling
 prompt_domain_and_proceed() {
@@ -174,13 +168,25 @@ final_filtering() {
     cat output/$domain/final_filtered_urls.txt | grep -E "\.php|\.asp|\.aspx|\.cfm|\.jsp" | sort > output/$domain/output_php_asp.txt
     grep -v "http[^ ]*\.[^/]*\." output/$domain/final_filtered_urls.txt | grep "http" | sort > output/$domain/clean_urls.txt
 
-    # Running arjun for parameter discovery
-    arjun -i output/$domain/output_php_asp.txt -w parameters.txt -t 1 -oT output/$domain/arjun_params.txt
+    # Run Arjun in passive mode in the background
+    arjun --passive -i "$output_dir/output_php_asp.txt" -w parameters.txt -oT "$output_dir/arjun_passive.txt" &
+
+    # Run Arjun in active mode in the foreground
+    arjun -i "$output_dir/output_php_asp.txt" -w parameters.txt -t 20 -T 5 -oT "$output_dir/arjun_active.txt"
+
+    # Wait for passive mode to complete (if not already finished)
+    wait
+
+    # Merge the results from passive and active scanning
+    cat "$output_dir/arjun_passive.txt" "$output_dir/arjun_active.txt" | sort -u > "$output_dir/arjun_params.txt"
+
+    # Merge the results from passive and active scanning
+    cat "$output_dir/arjun_passive.txt" "$output_dir/arjun_active.txt" | sort -u > "$output_dir/arjun_params.txt"
 
     # Merging all results into final_temp.txt in the domain-specific folder
     # cat output/$domain/filtered_urls_with_params.txt output/$domain/filtered_urls_without_params.txt output/$domain/output_php_asp.txt output/$domain/clean_urls.txt output/$domain/arjun_params.txt > output/$domain/final_urls.txt
     cat "output/$domain/filtered_urls_with_params.txt" "output/$domain/filtered_urls_without_params.txt" "output/$domain/output_php_asp.txt" "output/$domain/clean_urls.txt" "output/$domain/arjun_params.txt" > "output/$domain/final_urls.txt"
-
+    cat "output/$domain/filtered_urls_without_params.txt" "output/$domain/clean_urls.txt" > "output/$domain/potential_pathxss_urls.txt"
 
     # Clean up intermediate files and proceed to the next steps
     cleanup_intermediate_files
@@ -202,7 +208,7 @@ cleanup_intermediate_files() {
     # cat output/$domain/xss.txt output/$domain/sqli.txt output/$domain/ssrf.txt output/$domain/ssti.txt output/$domain/urlparams.txt output/$domain/redirect.txt output/$domain/idor.txt output/$domain/lfi.txt | uniq > output/$domain/final.txt
     cat "output/$domain/xss.txt" "output/$domain/sqli.txt" "output/$domain/ssrf.txt" "output/$domain/ssti.txt" "output/$domain/urlparams.txt" "output/$domain/redirect.txt" "output/$domain/idor.txt" "output/$domain/lfi.txt" | uniq > "output/$domain/final.txt"
     # Menghilangkan port dari URL (port 80 dan 443, sebagai contoh umum)
-    sed -e 's/:80//g' -e 's/:443//g' "output/$domain/final.txt" | sort -u > "output/$domain/final_clean.txt"
+    sed -e 's/:80//g' -e 's/:443//g' "output/$domain/final.txt" "output/$domain/potential_pathxss_urls.txt" | sort -u > "output/$domain/final_clean.txt"
     # Clean up all intermediate files but keep final.txt and domains.txt
     find output/$domain/ -type f ! -name 'domains.txt' ! -name 'final_clean.txt' ! -name 'final.txt' -delete
 
