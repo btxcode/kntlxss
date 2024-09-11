@@ -271,7 +271,7 @@ crawl_and_filter_urls() {
     if [ -f "output/$domain/combined_urls.txt" ]; then
         echo "[*] combined_urls.txt already exists, skipping."
     else
-        cat output/$domain/*.txt > output/$domain/combined_urls.txt
+        cat "output/$domain/wayback.txt" "output/$domain/gau.txt" "output/$domain/waymore.txt" "output/$domain/katana.txt" > output/$domain/combined_urls.txt
     fi
 
     # Running further filtering and unique check
@@ -295,7 +295,7 @@ crawl_and_filter_urls() {
     if [ -f "output/$domain/all_urls.txt" ]; then
         echo "[*] all_urls.txt already exists, skipping."
     else
-        cat output/$domain/unique_urls.txt output/$domain/links.txt output/$domain/subprober_urls.txt > output/$domain/all_urls.txt
+        cat "output/$domain/unique_urls.txt" "output/$domain/links.txt" "output/$domain/subprober_urls.txt" > "output/$domain/all_urls.txt"
     fi
 
     # Continue with filtering
@@ -384,7 +384,14 @@ cleanup_intermediate_files() {
 
         # Final merging and cleanup
         cat "output/$domain/xss.txt" "output/$domain/sqli.txt" "output/$domain/ssrf.txt" "output/$domain/ssti.txt" "output/$domain/urlparams.txt" "output/$domain/redirect.txt" "output/$domain/idor.txt" "output/$domain/lfi.txt" | uniq > "output/$domain/final.txt"
-        sed -e 's/:80//g' -e 's/:443//g' "output/$domain/final.txt" | sed -e 's/:80//g' -e 's/:443//g' "output/$domain/potential_pathxss_urls.txt" | sort -u > "output/$domain/final_clean.txt"
+
+        
+        # running second tools
+        subfinder -u $domain -all -silent | httpx-toolkit > output/$domain/hasilsub.txt
+        cat output/$domain/hasilsub.txt | uniq | sort -u > output/$domain/finalsub.txt
+        bash xsscrawler.sh -l output/$domain/finalsub.txt -o output/$domain/secondtool.txt
+        
+        cat "output/$domain/final.txt" "output/$domain/potential_pathxss_urls.txt" "output/$domain/secondtool.txt" | uniq | sort -u > "output/$domain/final_clean.txt"
     fi
 
     # Clean up all intermediate files but keep final.txt and domains.txt
