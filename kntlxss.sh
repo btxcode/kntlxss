@@ -87,6 +87,46 @@ install_tools() {
     echo "[*] Tools installed successfully."
 }
 
+
+# Function to check if tools are installed and have the right permissions
+check_tools() {
+    echo "[*] Checking installed tools and permissions..."
+
+    # Array of tools to check with their respective paths
+    tools=(
+        "/usr/local/bin/waybackurls"
+        "/usr/local/bin/gau"
+        "/usr/local/bin/katana"
+        "/usr/local/bin/gf"
+        "/usr/local/bin/chromedriver"
+        # Add any other tools here...
+    )
+
+    for tool in "${tools[@]}"; do
+        if [ -f "$tool" ]; then
+            # Check if tool has executable permissions
+            if [ -x "$tool" ]; then
+                echo "[*] $tool is installed and executable."
+            else
+                echo "[WARNING] $tool is installed but not executable. Fixing permissions..."
+                sudo chmod +x "$tool"
+            fi
+        else
+            echo "[ERROR] $tool is not installed."
+        fi
+    done
+
+    # Additionally, check Python tools using `pip list`
+    python_tools=("waymore" "uro" "subdominator" "subprober")
+    for ptool in "${python_tools[@]}"; do
+        if pip3 show "$ptool" > /dev/null 2>&1; then
+            echo "[*] Python tool $ptool is installed."
+        else
+            echo "[ERROR] Python tool $ptool is not installed."
+        fi
+    done
+}
+
 # Function to prompt for domain input and proceed with domain enumeration and crawling
 prompt_domain_and_proceed() {
     read -p "Please enter a domain name (example.com): " domain
@@ -308,20 +348,23 @@ quit_and_clear_terminal() {
     exit 0
 }
 
+
 # Main menu
 while true; do
     display_ascii_art
     echo "Please select an option:"
     echo "1. Install all tools"
-    echo "2. Enter a domain and start process XSS scanner"
-    echo "3. Quit"
+    echo "2. Check tools installation and permissions"
+    echo "3. Enter a domain and start process XSS scanner"
+    echo "4. Quit"
 
     read -p "Select an option: " option
 
     case $option in
         1) install_tools ;;
-        2) prompt_domain_and_proceed ;;
-        3) quit_and_clear_terminal ;;
+        2) heck_tools ;;
+        3) prompt_domain_and_proceed ;; c
+        4) quit_and_clear_terminal ;;
         *) echo "Invalid option." ;;
     esac
 done
