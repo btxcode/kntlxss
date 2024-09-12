@@ -455,10 +455,10 @@ run_xss_scanners() {
     echo "[*] Running XSS scanners..."
 
     # Run reflection XSS scanner
-    python3 reflection.py -l output/$domain/final_clean.txt --threads 20 --rua
+    python3 reflection.py -l output/$domain/final_clean.txt --threads 1 --rua
 
     # Run stored XSS scanner
-    python3 stored.py -l output/$domain/final_clean.txt --threads 20 --rua
+    python3 stored.py -l output/$domain/final_clean.txt --threads 1 --rua
 
 
 }
