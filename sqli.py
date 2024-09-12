@@ -23,37 +23,38 @@ def log_success_to_txt(txt_file, url, payload, status_code, response_time, respo
         file.write("\n")
 
 # Fungsi untuk melakukan pengujian SQLi
-def test_sqli(url, payloads, output_file, use_random_user_agent):
-    domain = get_domain(url)
-    success_txt_file = f"sql_{domain}.txt"
+def test_sqli(urls, payloads, use_random_user_agent):
+    for url in urls:
+        domain = get_domain(url)
+        success_txt_file = f"sql_{domain}.txt"
 
-    ua = UserAgent() if use_random_user_agent else None
+        ua = UserAgent() if use_random_user_agent else None
 
-    for payload in payloads:
-        try:
-            target_url = f"{url}{payload}"
-            headers = {}
-            if use_random_user_agent:
-                headers["User-Agent"] = ua.random
-            else:
-                headers["User-Agent"] = "Mozilla/5.0"
-            
-            response = requests.get(target_url, timeout=5, headers=headers)
+        for payload in payloads:
+            try:
+                target_url = f"{url}{payload}"
+                headers = {}
+                if use_random_user_agent:
+                    headers["User-Agent"] = ua.random
+                else:
+                    headers["User-Agent"] = "Mozilla/5.0"
+                
+                response = requests.get(target_url, timeout=5, headers=headers)
 
-            db_type = detect_sql_error(response)
-            if db_type:
-                user_agent = headers.get("User-Agent")
-                print(colored(f"[SUCCESS] SQLi found on: {target_url}", "green"))
-                print(f"Payload: {payload}")
-                print(f"Database Type: {db_type}")
-                print(f"Status Code: {response.status_code}")
-                print(f"Response Time: {response.elapsed.total_seconds() * 1000}ms")
-                log_success_to_txt(success_txt_file, target_url, payload, response.status_code, response.elapsed.total_seconds() * 1000, response.text, db_type, user_agent)
-            else:
-                print(colored(f"[FAILED] No SQL error detected: {target_url}", "red"))
+                db_type = detect_sql_error(response)
+                if db_type:
+                    user_agent = headers.get("User-Agent")
+                    print(colored(f"[SUCCESS] SQLi found on: {target_url}", "green"))
+                    print(f"Payload: {payload}")
+                    print(f"Database Type: {db_type}")
+                    print(f"Status Code: {response.status_code}")
+                    print(f"Response Time: {response.elapsed.total_seconds() * 1000}ms")
+                    log_success_to_txt(success_txt_file, target_url, payload, response.status_code, response.elapsed.total_seconds() * 1000, response.text, db_type, user_agent)
+                else:
+                    print(colored(f"[FAILED] No SQL error detected: {target_url}", "red"))
 
-        except Exception as e:
-            print(colored(f"[ERROR] Failed to test {url} with error: {e}", "red"))
+            except Exception as e:
+                print(colored(f"[ERROR] Failed to test {url} with error: {e}", "red"))
 
 # Fungsi untuk mendeteksi jenis database berdasarkan pola error SQL
 def detect_sql_error(response):
@@ -128,7 +129,7 @@ def main():
     payloads = load_payloads(args.payload)
 
     # Mulai pengujian SQLi
-    sqli_test(urls, payloads, args.rua)
+    test_sqli(urls, payloads, args.rua)
 
 if __name__ == "__main__":
     main()
