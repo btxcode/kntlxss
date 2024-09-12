@@ -31,7 +31,7 @@ install_tools() {
     sudo -v || { echo "[ERROR] Sudo required. Please run with sudo privileges."; exit 1; }
 
     # Install Chrome, Arjun (HTTP parameter discovery tool) & hakrawler
-    sudo apt update && sudo apt install libu2f-udev golang-go httpxx-toolkit arjun hakrawler -y
+    sudo apt update && sudo apt install libu2f-udev golang-go httpx-toolkit arjun hakrawler -y
     sudo dpkg -i google-chrome-stable_114.0.5735.90-1_amd64.deb
 
     # Copy chromedriver and set execute permissions
