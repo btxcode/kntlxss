@@ -14,6 +14,7 @@ import os
 
 # Fungsi untuk setup Selenium WebDriver (headless atau tidak)
 def setup_selenium_driver(headless=True):
+    print("[DEBUG] Setting up Selenium WebDriver")  # Debug
     chrome_options = Options()
     if headless:
         chrome_options.add_argument("--headless")
@@ -25,6 +26,7 @@ def setup_selenium_driver(headless=True):
 
 # Fungsi untuk mendapatkan semua form dari halaman
 def get_all_forms(url, use_selenium=False):
+    print(f"[DEBUG] Fetching forms from {url} with Selenium: {use_selenium}")  # Debug
     if use_selenium:
         driver = setup_selenium_driver(headless=True)
         driver.get(url)
@@ -34,7 +36,10 @@ def get_all_forms(url, use_selenium=False):
         soup = bs(html, "html.parser")
     else:
         soup = bs(requests.get(url).content, "html.parser")
-    return soup.find_all("form")
+
+    forms = soup.find_all("form")
+    print(f"[DEBUG] Found {len(forms)} forms on {url}")  # Debug
+    return forms
 
 # Fungsi untuk mendapatkan detail dari setiap form
 def get_form_details(form):
@@ -54,6 +59,7 @@ def get_form_details(form):
 # Fungsi untuk mengirimkan form dengan payload
 def submit_form(form_details, url, value):
     target_url = urljoin(url, form_details["action"])
+    print(f"[DEBUG] Submitting form to {target_url} with payload {value}")  # Debug
     inputs = form_details["inputs"]
     data = {}
     for input in inputs:
@@ -131,9 +137,15 @@ def send_payload_to_form(url, form, payload, headers, success_txt_file):
     form_details = get_form_details(form)
     response = submit_form(form_details, url, payload)
 
+    # Pengecekan tipe konten sebelum melakukan parsing
+    if "text/html" in response.headers.get("Content-Type", ""):
+        soup = bs(response.content, 'html.parser')
+        page_title = soup.title.string if soup.title else 'No Title'
+    else:
+        print(colored(f"[WARNING] The response from {url} is not HTML. Skipping...", "yellow"))
+        page_title = 'No Title'
+
     waf_status = detect_waf(response)
-    soup = bs(response.content, 'html.parser')
-    page_title = soup.title.string if soup.title else 'No Title'
 
     if payload in response.text:
         print(colored(f"[SUCCESS] Form submitted to: {url}", "green"))
@@ -143,7 +155,6 @@ def send_payload_to_form(url, form, payload, headers, success_txt_file):
         # Print form details for better understanding
         print(colored(f"Form details for {url}:", "blue"))
         pprint.pprint(form_details)
-
     else:
         print(colored(f"[FAILED] Payload not reflected on {url}", "red"))
         print(colored(f"Form details for {url}:", "yellow"))
@@ -167,6 +178,8 @@ def test_url(url, payloads, use_random_user_agent):
             for form in forms:
                 headers["User-Agent"] = ua.random if use_random_user_agent else "Mozilla/5.0"
                 send_payload_to_form(url, form, payload, headers, success_txt_file)
+        else:
+            print(f"[DEBUG] No forms found for {url}")  # Debug jika tidak ada form yang ditemukan
 
 # Fungsi untuk menjalankan pengujian stored XSS dengan multi-threading
 def xss_stored_test(urls, payloads, use_random_user_agent, threads):
