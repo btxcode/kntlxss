@@ -54,6 +54,7 @@ Usage:
 ```
 cd kntlxss
 chmod +x *
+pip3 install -r requirements.txt
 ./kntlxss.sh
 ```
 
