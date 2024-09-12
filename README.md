@@ -60,3 +60,6 @@ chmod +x *
 ## License
 
 This project is licensed under the MIT License.
+
+## Contributors
+https://github.com/btxcode/kntlxss/graphs/contributors
