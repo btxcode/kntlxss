@@ -61,5 +61,15 @@ chmod +x *
 
 This project is licensed under the MIT License.
 
-## Contributors
-https://github.com/btxcode/kntlxss/graphs/contributors
+### Credits
+
+Thanks to all the amazing [community contributors for sending PRs](https://github.com/btxcode/kntlxss/graphs/contributors) and keeping this project updated. :heart:
+
+If you have an idea or some kind of improvement, you are welcome to contribute and participate in the Project, feel free to send your PR.
+
+<p align="center">
+<a href="https://github.com/projectdiscovery/nuclei/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=projectdiscovery/nuclei&max=500">
+</a>
+</p>
+
